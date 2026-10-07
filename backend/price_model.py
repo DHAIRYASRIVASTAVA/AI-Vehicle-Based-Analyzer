@@ -1,18 +1,19 @@
-"""Price estimation: GradientBoosting trained on synthetic depreciation data.
+"""Price estimation: GradientBoosting trained on synthetic depreciation data covering
+cars, bikes and scooters across a wide price range, so it also works for custom models.
 Swap `make_synthetic()` with a real CSV via `train(df)` when you have a dataset."""
 import os
 import joblib
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import GradientBoostingRegressor
-from .catalog import CATALOG, KM_PER_YEAR
+from .catalog import KM_PER_YEAR
 
 MODEL_PATH = os.path.join(os.path.dirname(__file__), "price_model.joblib")
-FEATURES = ["log_base", "age", "km", "owners", "service_ok", "accident", "is_bike"]
+FEATURES = ["log_base", "age", "km", "owners", "service_ok", "accident", "kpy"]
+_RANGE = {"car": (4e5, 3.5e6), "bike": (6e4, 4e5), "scooter": (6e4, 1.8e5)}
 
 
-def _value(base, age, km, owners, service_ok, accident, is_bike):
-    kpy = KM_PER_YEAR["bike" if is_bike else "car"]
+def _value(base, age, km, owners, service_ok, accident, kpy):
     v = base * 0.92 * np.exp(-0.08 * age)
     v *= 1 - 0.12 * np.clip(km / (np.maximum(age, 1) * kpy) - 1, -0.6, 1.5)
     v *= 1 - 0.04 * (owners - 1)
@@ -21,20 +22,20 @@ def _value(base, age, km, owners, service_ok, accident, is_bike):
     return v
 
 
-def make_synthetic(n=4000, seed=42):
+def make_synthetic(n=6000, seed=42):
     rng = np.random.default_rng(seed)
-    names = list(CATALOG)
     rows = []
     for _ in range(n):
-        name = names[rng.integers(len(names))]
-        base, kind = CATALOG[name]
-        is_bike = int(kind == "bike")
-        age = int(rng.integers(0, 14))
-        km = max(500, rng.normal(age * KM_PER_YEAR[kind], 5000 if not is_bike else 3500) + 3000)
+        kind = rng.choice(["car", "bike", "scooter"], p=[.5, .3, .2])
+        lo, hi = _RANGE[kind]
+        base = float(np.exp(rng.uniform(np.log(lo), np.log(hi))))
+        kpy = KM_PER_YEAR[kind]
+        age = int(rng.integers(0, 15))
+        km = max(300, rng.normal(age * kpy, kpy * 0.4) + kpy * 0.25)
         owners = int(rng.choice([1, 2, 3, 4], p=[.5, .3, .15, .05]))
         s, a = int(rng.random() < .65), int(rng.random() < .12)
-        price = _value(base, age, km, owners, s, a, is_bike) * rng.normal(1, 0.04)
-        rows.append([np.log(base), age, km, owners, s, a, is_bike, price])
+        price = _value(base, age, km, owners, s, a, kpy) * rng.normal(1, 0.04)
+        rows.append([np.log(base), age, km, owners, s, a, kpy, price])
     return pd.DataFrame(rows, columns=FEATURES + ["price"])
 
 
@@ -56,10 +57,9 @@ def _get():
     return _model
 
 
-def estimate(name, age, km, owners, service, accident, asking):
-    base, kind = CATALOG[name]
+def estimate(base, kind, age, km, owners, service, accident, asking):
     x = pd.DataFrame([[np.log(base), age, km, owners, int(service == "Available"),
-                       int(accident == "Yes"), int(kind == "bike")]], columns=FEATURES)
+                       int(accident == "Yes"), KM_PER_YEAR[kind]]], columns=FEATURES)
     mid = float(_get().predict(x)[0])
     low, high = mid * 0.95, mid * 1.05
     ratio = asking / high
