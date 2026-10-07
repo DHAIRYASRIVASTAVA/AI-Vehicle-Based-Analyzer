@@ -1,0 +1,18 @@
+# Local run with PostgreSQL:  docker compose up --build   ->  http://localhost:7860
+services:
+  web:
+    build: .
+    ports: ["7860:7860"]
+    env_file: [.env]
+    environment:
+      DATABASE_URL: postgresql://vra:vra@db:5432/vra
+    depends_on: [db]
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: vra
+      POSTGRES_PASSWORD: vra
+      POSTGRES_DB: vra
+    volumes: [pgdata:/var/lib/postgresql/data]
+volumes:
+  pgdata:

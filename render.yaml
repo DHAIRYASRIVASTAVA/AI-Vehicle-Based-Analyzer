@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: vehicle-risk-analyzer
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: LLM_API_KEY
+        sync: false
+      - key: LLM_BASE_URL
+        value: https://api.openai.com/v1
+      - key: LLM_MODEL
+        value: gpt-4o-mini
+      - key: VISION_MODEL
+        value: gpt-4o-mini
+      - key: DATABASE_URL
+        fromDatabase:
+          name: vra-db
+          property: connectionString
+databases:
+  - name: vra-db
+    plan: free
