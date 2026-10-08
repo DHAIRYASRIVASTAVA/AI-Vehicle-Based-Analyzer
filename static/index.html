@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#4f46e5">
+<title>VehicleCheck – Used Vehicle Risk Analyzer</title>
+<style>
+:root{--bg:#f4f5fb;--card:#fff;--tx:#161a2e;--mut:#6b7190;--bd:#e4e6f2;--pri:#4f46e5;--pri2:#7c3aed;--ok:#22c55e;--warn:#f59e0b;--bad:#ef4444}
+@media(prefers-color-scheme:dark){:root{--bg:#0d0f1c;--card:#171a2e;--tx:#eef0ff;--mut:#9aa0c3;--bd:#262a47}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding-bottom:84px}
+.bar{position:sticky;top:0;z-index:5;padding:calc(12px + env(safe-area-inset-top)) 18px 12px;background:linear-gradient(135deg,var(--pri),var(--pri2));color:#fff;display:flex;align-items:center;gap:10px}
+.bar b{font-size:18px}.bar small{opacity:.85;display:block;font-size:12px}
+.wrap{max-width:760px;margin:0 auto;padding:14px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:18px;padding:16px;margin-bottom:12px;box-shadow:0 2px 10px rgba(30,30,80,.05)}
+.card h3{margin:0 0 12px;font-size:14px;color:var(--mut);text-transform:uppercase;letter-spacing:.05em}
+label{display:block;font-size:13px;color:var(--mut);margin:12px 0 6px}
+input,select{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font-size:16px}
+input:focus{outline:2px solid var(--pri);border-color:transparent}
+.row{display:flex;gap:10px}.row>*{flex:1}
+.seg{display:flex;background:var(--bg);border-radius:14px;padding:4px;gap:4px}
+.seg button{flex:1;border:0;background:none;color:var(--mut);padding:10px 4px;border-radius:11px;font-size:15px;font-weight:600;cursor:pointer;transition:.2s}
+.seg button.on{background:var(--card);color:var(--pri);box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--bd);background:var(--bg);color:var(--tx);padding:8px 14px;border-radius:99px;font-size:14px;cursor:pointer;transition:.15s}
+.chip.on{background:var(--pri);border-color:var(--pri);color:#fff}
+.step{display:flex;align-items:center;gap:12px}.step button{width:44px;height:44px;border-radius:12px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font-size:22px;cursor:pointer}
+.step span{flex:1;text-align:center;font-size:22px;font-weight:700}
+.hint{font-size:12px;color:var(--mut);margin-top:4px}.big-price{font-size:13px;color:var(--pri);font-weight:600;margin-top:4px}
+.photos{display:flex;gap:8px;flex-wrap:wrap}.ph{position:relative;width:74px;height:74px;border-radius:12px;overflow:hidden;border:1px solid var(--bd)}
+.ph img{width:100%;height:100%;object-fit:cover}.ph i{position:absolute;top:2px;right:2px;background:#000a;color:#fff;border-radius:50%;width:20px;height:20px;text-align:center;font-style:normal;font-size:13px;line-height:20px;cursor:pointer}
+.add{width:74px;height:74px;border-radius:12px;border:2px dashed var(--bd);display:grid;place-items:center;color:var(--mut);font-size:26px;cursor:pointer}
+.go{width:100%;border:0;border-radius:16px;padding:16px;font-size:17px;font-weight:700;color:#fff;background:linear-gradient(135deg,var(--pri),var(--pri2));cursor:pointer;box-shadow:0 8px 20px rgba(79,70,229,.35)}
+.go:active{transform:scale(.98)}
+.nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--card);border-top:1px solid var(--bd);padding:6px 0 calc(6px + env(safe-area-inset-bottom));z-index:6}
+.nav button{flex:1;border:0;background:none;color:var(--mut);font-size:11px;padding:6px;cursor:pointer}.nav button span{display:block;font-size:22px}.nav .on{color:var(--pri);font-weight:700}
+.view{display:none;animation:in .3s}.view.on{display:block}@keyframes in{from{opacity:0;transform:translateY(10px)}to{opacity:1}}
+.center{text-align:center}.big{font-size:22px;font-weight:800}.mut{color:var(--mut);font-size:13px}
+.gauge path.v{transition:stroke-dasharray 1.3s cubic-bezier(.2,.8,.2,1)}
+.fb{height:9px;border-radius:5px;background:var(--bd);overflow:hidden;margin:5px 0 12px}.fb i{display:block;height:100%;width:0;border-radius:5px;transition:width 1s}
+.fr{display:flex;justify-content:space-between;font-size:13px}
+.pm{position:relative;height:14px;border-radius:7px;background:var(--bd);margin:38px 0 30px}.pm .f{position:absolute;height:100%;background:#22c55e88;border-radius:7px}
+.pm .a{position:absolute;top:-8px;width:4px;height:30px;border-radius:2px}.pm em{position:absolute;font-size:11px;font-style:normal;white-space:nowrap;transform:translateX(-50%)}
+ul.l{margin:0;padding-left:18px}ul.l li{margin:7px 0}.tag{display:inline-block;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:700;margin-right:6px}
+.ck label{display:flex;gap:10px;align-items:center;color:var(--tx);font-size:15px;margin:6px 0}.ck input{width:20px;height:20px;accent-color:var(--pri)}
+.bub{padding:10px 14px;border-radius:16px;margin:8px 0;max-width:88%;white-space:pre-wrap}.me{background:var(--pri);color:#fff;margin-left:auto;border-bottom-right-radius:4px}.ai{background:var(--bg);border-bottom-left-radius:4px}
+.ov{position:fixed;inset:0;background:#0009;backdrop-filter:blur(4px);display:none;place-items:center;z-index:9}.ov.on{display:grid}
+.ov .box{background:var(--card);border-radius:22px;padding:28px;width:min(340px,86vw);text-align:center}
+.spin{width:54px;height:54px;border-radius:50%;border:5px solid var(--bd);border-top-color:var(--pri);margin:0 auto 14px;animation:r 1s linear infinite}@keyframes r{to{transform:rotate(360deg)}}
+.pg{height:6px;background:var(--bd);border-radius:3px;margin-top:14px;overflow:hidden}.pg i{display:block;height:100%;width:5%;background:var(--pri);transition:width 1s}
+.hi{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--bd);cursor:pointer}.hi:last-child{border:0}
+</style></head><body>
+<div class="bar"><span style="font-size:28px">🚘</span><div><b>VehicleCheck</b><small>Used car, bike &amp; scooter risk analyzer</small></div></div>
+<div class="wrap">
+
+<div id="v-new" class="view on">
+ <div class="card"><h3>Vehicle</h3>
+  <div class="seg" id="kind"><button data-k="car" class="on">🚗 Car</button><button data-k="bike">🏍️ Bike</button><button data-k="scooter">🛵 Scooter</button></div>
+  <label>Make &amp; model <span class="hint">(list se chuno ya kuch bhi type karo)</span></label>
+  <input id="name" list="models" value="Honda City" autocomplete="off"><datalist id="models"></datalist>
+  <div class="row"><div><label>Year</label><input id="year" type="number" inputmode="numeric" value="2020"></div>
+  <div><label>Mileage (km)</label><input id="km" type="number" inputmode="numeric" value="72000" step="1000"></div></div>
+  <label>Owners</label><div class="step"><button id="om">−</button><span id="ov">2</span><button id="op">+</button></div>
+ </div>
+ <div class="card"><h3>Price</h3>
+  <label style="margin-top:0">Asking price (₹)</label><input id="price" type="number" inputmode="numeric" value="820000" step="1000">
+  <div class="big-price" id="pw"></div>
+  <div class="chips" style="margin-top:10px" id="pq"></div>
+  <label>New / ex-showroom price (₹) <span class="hint">optional — custom model ke liye</span></label><input id="np" type="number" inputmode="numeric" placeholder="e.g. 180000" step="1000">
+ </div>
+ <div class="card"><h3>History</h3>
+  <label style="margin-top:0">Service history</label><div class="chips" id="svc"></div>
+  <label>Accident history</label><div class="chips" id="acc"></div>
+ </div>
+ <div class="card"><h3>Photos <span class="mut">(optional, max 5)</span></h3>
+  <div class="photos" id="photos"></div><input type="file" id="file" accept="image/*" multiple hidden>
+  <div class="hint">Bumper, doors, headlights, tyres ki clear photos best rehti hain.</div>
+ </div>
+ <button class="go" id="go">🔍 Analyze Vehicle</button>
+</div>
+
+<div id="v-res" class="view"><div class="card center"><div style="font-size:42px">📊</div><b>Abhi koi analysis nahi</b><div class="mut">Pehle vehicle analyze karo.</div></div></div>
+
+<div id="v-his" class="view"><div class="card"><h3>Past analyses</h3><div id="hl" class="mut">Loading…</div></div></div>
+</div>
+
+<nav class="nav"><button data-v="new" class="on"><span>📝</span>Analyze</button><button data-v="res"><span>📊</span>Result</button><button data-v="his"><span>🕘</span>History</button></nav>
+<div class="ov" id="ov"><div class="box"><div class="spin"></div><b id="ot">Analyzing…</b><div class="mut" id="os">Starting</div><div class="pg"><i id="pgi"></i></div></div></div>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const inr=x=>'₹'+Math.round(x).toLocaleString('en-IN');
+let kind='car',owners=2,svc='Available',acc='Unknown',files=[],CAT={car:[],bike:[],scooter:[]},cur=null;
+
+function show(v){$$('.view').forEach(e=>e.classList.toggle('on',e.id=='v-'+v));$$('.nav button').forEach(b=>b.classList.toggle('on',b.dataset.v==v));scrollTo(0,0);if(v=='his')loadHist()}
+$$('.nav button').forEach(b=>b.onclick=()=>show(b.dataset.v));
+
+function fillModels(){$('#models').innerHTML=(CAT[kind]||[]).map(n=>`<option value="${esc(n)}">`).join('')}
+fetch('/api/catalog').then(r=>r.json()).then(c=>{CAT=c;fillModels()}).catch(()=>{});
+$$('#kind button').forEach(b=>b.onclick=()=>{kind=b.dataset.k;$$('#kind button').forEach(x=>x.classList.toggle('on',x==b));fillModels();$('#name').value=(CAT[kind]||[])[0]||''});
+
+function chips(id,opts,get,set){const el=$(id);el.innerHTML=opts.map(o=>`<button class="chip${get()==o?' on':''}">${o}</button>`).join('');
+ [...el.children].forEach(c=>c.onclick=()=>{set(c.textContent);chips(id,opts,get,set)})}
+chips('#svc',['Available','Partial','Not available','Unknown'],()=>svc,v=>svc=v);
+chips('#acc',['No','Yes','Unknown'],()=>acc,v=>acc=v);
+$('#om').onclick=()=>{owners=Math.max(1,owners-1);$('#ov').textContent=owners};
+$('#op').onclick=()=>{owners=Math.min(6,owners+1);$('#ov').textContent=owners};
+
+const QP=[[25000,'₹25k'],[50000,'₹50k'],[100000,'₹1L'],[300000,'₹3L'],[500000,'₹5L'],[1000000,'₹10L']];
+$('#pq').innerHTML=QP.map(([v,l])=>`<button class="chip" data-v="${v}">${l}</button>`).join('');
+$$('#pq .chip').forEach(c=>c.onclick=()=>{$('#price').value=c.dataset.v;pw()});
+function pw(){const v=+$('#price').value;$('#pw').textContent=v>0?inr(v):''}$('#price').oninput=pw;pw();
+
+function drawPh(){$('#photos').innerHTML=files.map((f,i)=>`<div class="ph"><img src="${URL.createObjectURL(f)}"><i data-i="${i}">×</i></div>`).join('')+(files.length<5?'<div class="add" id="addp">＋</div>':'');
+ $$('.ph i').forEach(x=>x.onclick=()=>{files.splice(+x.dataset.i,1);drawPh()});const a=$('#addp');if(a)a.onclick=()=>$('#file').click()}
+$('#file').onchange=e=>{files=files.concat([...e.target.files]).slice(0,5);e.target.value='';drawPh()};drawPh();
+
+const STAGES=['Vehicle details validate ho rahe hain…','Price model fair range nikal raha hai…','Photos check ho rahi hain…','Risk score calculate ho raha hai…','AI report likh raha hai…'];
+let tmr;function load(on){$('#ov').classList.toggle('on',on);clearInterval(tmr);if(!on)return;let i=0;$('#pgi').style.width='5%';
+ const tick=()=>{$('#os').textContent=STAGES[Math.min(i,4)];$('#pgi').style.width=Math.min(92,8+i*18)+'%';i++};tick();tmr=setInterval(tick,2800)}
+
+$('#go').onclick=async()=>{
+ const fd=new FormData();fd.append('name',$('#name').value);fd.append('kind',kind);fd.append('year',$('#year').value);fd.append('km',$('#km').value);
+ fd.append('owners',owners);fd.append('price',$('#price').value);fd.append('service_history',svc);fd.append('accident',acc);
+ if($('#np').value)fd.append('new_price',$('#np').value);files.forEach(f=>fd.append('images',f));
+ load(true);const ac=new AbortController(),to=setTimeout(()=>ac.abort(),100000);
+ try{const r=await fetch('/api/analyze',{method:'POST',body:fd,signal:ac.signal});const j=await r.json();
+  if(!r.ok)throw new Error(j.detail||'Server error');render(j);show('res')}
+ catch(e){alert(e.name=='AbortError'?'Server ne bahut time liya. Thodi der baad dobara try karo (free server sleep se uth raha ho sakta hai).':e.message)}
+ finally{clearTimeout(to);load(false)}};
+
+const BAND={'Low Risk':'#22c55e','Moderate Risk':'#eab308','High Risk':'#f97316','Very High Risk':'#ef4444'};
+const PC={'FAIR / GOOD':'#22c55e','SLIGHTLY HIGH':'#f59e0b','HIGH':'#ef4444','SUSPICIOUSLY LOW':'#a855f7'};
+const col=r=>r<.34?'#22c55e':r<.67?'#f59e0b':'#ef4444';
+const ul=a=>'<ul class="l">'+a.map(x=>`<li>${esc(x)}</li>`).join('')+'</ul>';
+
+function render(r){cur=r;const v=r.vehicle,p=r.price,k=r.risk,rep=r.report,bc=BAND[k.label]||'#eab308',pc=PC[p.label]||'#f59e0b';
+ const lo=Math.min(p.asking,p.fair_low)*.85,hi=Math.max(p.asking,p.fair_high)*1.15,pos=x=>Math.max(0,Math.min(100,(x-lo)/(hi-lo)*100));
+ const ico={car:'🚗',bike:'🏍️',scooter:'🛵'}[v.kind]||'🚘',sev={none:'#22c55e',minor:'#f59e0b',possible_concern:'#ef4444'};
+ const ckKey='ck'+(r.id||'x'),saved=JSON.parse(localStorage.getItem(ckKey)||'[]');
+ $('#v-res').innerHTML=`
+ <div class="card center"><svg class="gauge" viewBox="0 0 200 120" style="width:100%;max-width:280px"><path d="M20 100A80 80 0 0 1 180 100" fill="none" stroke="var(--bd)" stroke-width="16" stroke-linecap="round"/>
+  <path class="v" id="gv" d="M20 100A80 80 0 0 1 180 100" fill="none" stroke="${bc}" stroke-width="16" stroke-linecap="round" stroke-dasharray="0 251.3"/>
+  <text x="100" y="94" text-anchor="middle" font-size="40" font-weight="800" fill="currentColor" id="gn">0</text><text x="100" y="114" text-anchor="middle" font-size="12" fill="var(--mut)">out of 100</text></svg>
+  <div class="big" style="color:${bc}">${k.emoji} ${esc(k.label)}</div><div class="mut" style="margin-top:6px">${esc(rep.summary||'')}</div>
+  <div style="margin-top:12px"><button class="chip" id="sh">📤 Share</button></div></div>
+ <div class="card"><h3>${ico} ${esc(v.name)}</h3><div class="mut">${v.year} · ${v.age} yrs · ${v.km.toLocaleString('en-IN')} km · ${v.owners} owner(s)</div>
+  <div style="margin-top:8px"><span class="tag" style="background:var(--bg)">Service: ${esc(v.service)}</span><span class="tag" style="background:var(--bg)">Accident: ${esc(v.accident)}</span></div></div>
+ <div class="card"><h3>💰 Price check</h3><div class="big" style="color:${pc}">${esc(p.label)}</div>
+  <div class="mut">Asking ${inr(p.asking)} · Fair ${inr(p.fair_low)} – ${inr(p.fair_high)}</div>
+  <div class="pm"><div class="f" style="left:${pos(p.fair_low)}%;width:${pos(p.fair_high)-pos(p.fair_low)}%"></div><em style="left:${(pos(p.fair_low)+pos(p.fair_high))/2}%;top:20px;color:#22c55e">fair range</em>
+  <div class="a" style="left:${pos(p.asking)}%;background:${pc}"></div><em style="left:${pos(p.asking)}%;top:-28px;color:${pc}">asking ${inr(p.asking)}</em></div>
+  <div class="mut">Demo model (synthetic data) — approximate hai.</div></div>
+ <div class="card"><h3>📉 Risk breakdown</h3>${Object.entries(k.parts).map(([a,x])=>`<div class="fr"><span>${esc(a)}</span><b>${x}/${k.max[a]}</b></div><div class="fb"><i data-w="${x/k.max[a]*100}" style="background:${col(x/k.max[a])}"></i></div>`).join('')}</div>
+ <div class="card"><h3>📷 Photo observations</h3>${r.vision.length?'<ul class="l" style="list-style:none;padding:0">'+r.vision.map(o=>`<li><span class="tag" style="background:${sev[o.severity]||'#888'}33;color:${sev[o.severity]||'#888'}">${esc((o.severity||'').replace('_',' '))}</span><b>${esc(o.area)}</b>: ${esc(o.observation)}</li>`).join('')+'</ul><div class="mut">Possible signs only — diagnosis nahi.</div>':`<div class="mut">${esc(r.vision_status)}</div>`}</div>
+ <div class="card" style="border-color:#ef444466"><h3>⚠️ Concerns</h3>${ul(rep.concerns)}</div>
+ <div class="card" style="border-color:#22c55e66"><h3>✅ Positives</h3>${ul(rep.positives)}</div>
+ <div class="card"><h3>🔍 Questions for seller</h3>${ul(rep.seller_questions)}</div>
+ <div class="card ck"><h3>🔧 Pre-purchase checklist</h3>${rep.checklist.map((x,i)=>`<label><input type="checkbox" data-i="${i}" ${saved.includes(i)?'checked':''}>${esc(x)}</label>`).join('')}</div>
+ <div class="card"><h3>💬 Ask AI</h3><div id="chat"></div><div class="row" style="margin-top:8px"><input id="q" placeholder="e.g. Bumper repaint kaise check karun?" style="flex:4"><button class="go" id="ask" style="flex:1;padding:12px;font-size:14px;box-shadow:none">Ask</button></div></div>
+ <div class="mut center" style="padding:6px 0 14px">AI estimate hai. Khareedne se pehle mechanic inspection zaroor karwao.${r.timings?` · ${r.timings.report}s`:''}</div>`;
+ requestAnimationFrame(()=>requestAnimationFrame(()=>{$('#gv').setAttribute('stroke-dasharray',`${251.3*k.total/100} 251.3`);$$('.fb i').forEach(i=>i.style.width=i.dataset.w+'%');
+  let n=0;const t=setInterval(()=>{n+=Math.max(1,Math.round(k.total/30));if(n>=k.total){n=k.total;clearInterval(t)}$('#gn').textContent=n},35)}));
+ $$('.ck input').forEach(c=>c.onchange=()=>{const s=$$('.ck input').filter(x=>x.checked).map(x=>+x.dataset.i);localStorage.setItem(ckKey,JSON.stringify(s))});
+ $('#sh').onclick=()=>{const t=`${v.name} (${v.year}) – Risk ${k.total}/100 (${k.label}). Asking ${inr(p.asking)}, fair ${inr(p.fair_low)}–${inr(p.fair_high)} (${p.label}).`;navigator.share?navigator.share({title:'VehicleCheck',text:t}).catch(()=>{}):(navigator.clipboard.writeText(t),alert('Summary copy ho gaya'))};
+ const send=async()=>{const q=$('#q').value.trim();if(!q||!r.id)return;$('#q').value='';const c=$('#chat');c.insertAdjacentHTML('beforeend',`<div class="bub me">${esc(q)}</div><div class="bub ai" id="pend">…</div>`);
+  try{const x=await fetch('/api/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:r.id,question:q})});const j=await x.json();$('#pend').textContent=j.answer||j.detail}catch(e){$('#pend').textContent='Error: '+e.message}$('#pend').removeAttribute('id')};
+ $('#ask').onclick=send;$('#q').onkeydown=e=>{if(e.key=='Enter')send()}}
+
+async function loadHist(){try{const h=await (await fetch('/api/history')).json();
+ $('#hl').innerHTML=h.length?h.map(x=>`<div class="hi" data-id="${x.id}"><div><b>${esc(x.vehicle)}</b><div class="mut">${esc(x.created.slice(0,16).replace('T',' '))}</div></div><span class="tag" style="background:${BAND[x.label]||'#888'}33;color:${BAND[x.label]||'#888'}">${x.score}/100</span></div>`).join(''):'Abhi koi history nahi.';
+ $$('.hi').forEach(e=>e.onclick=async()=>{const r=await (await fetch('/api/reports/'+e.dataset.id)).json();r.id=+e.dataset.id;render(r);show('res')})}catch(e){$('#hl').textContent='History load nahi hui.'}}
+</script></body></html>

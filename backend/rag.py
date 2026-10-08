@@ -1,5 +1,5 @@
 """RAG over data/knowledge/*.md using FAISS.
-Embeddings (first available): 1) OpenAI-compatible API (set EMBED_MODEL), 2) local fastembed (ONNX, no torch),
+Embeddings (first available): 1) OpenAI-compatible API (set EMBED_MODEL), 2) local fastembed only if USE_FASTEMBED=1,
 3) fallback to TF-IDF so the app never breaks. FAISS index is cached in data/index/."""
 import glob, hashlib, json, os
 import numpy as np
@@ -13,14 +13,20 @@ _state = {}
 def _embed(texts):
     """Returns (float32 matrix, backend_tag) or (None, None)."""
     key, model = os.getenv("LLM_API_KEY"), os.getenv("EMBED_MODEL")
+    if _state.get("api_bad"):
+        return None, None
     if key and model:
         try:
             from openai import OpenAI
-            c = OpenAI(api_key=key, base_url=os.getenv("LLM_BASE_URL", "https://api.openai.com/v1"))
+            c = OpenAI(api_key=key, base_url=os.getenv("LLM_BASE_URL", "https://api.openai.com/v1"),
+                       timeout=10, max_retries=0)
             r = c.embeddings.create(model=model, input=texts)
             return np.array([d.embedding for d in r.data], dtype="float32"), f"api-{model}"
         except Exception:
-            pass
+            _state["api_bad"] = True
+            return None, None  # fall back to TF-IDF (never to a heavy local model on small hosts)
+    if os.getenv("USE_FASTEMBED") != "1":
+        return None, None
     try:
         from fastembed import TextEmbedding
         m = _state.get("fe") or _state.setdefault("fe", TextEmbedding("BAAI/bge-small-en-v1.5"))
@@ -41,6 +47,7 @@ def _build():
     sig = hashlib.md5("\n".join(chunks).encode()).hexdigest()[:10]
     try:
         import faiss
+        faiss.omp_set_num_threads(1)
         vecs, tag = _embed(chunks)
         if vecs is not None:
             os.makedirs(_IDX, exist_ok=True)
@@ -55,7 +62,7 @@ def _build():
                 json.dump(chunks, open(path + ".json", "w"))
             _state.update(mode="faiss", index=index, chunks=chunks, faiss=faiss)
             return
-    except ImportError:
+    except Exception:
         pass
     from sklearn.feature_extraction.text import TfidfVectorizer
     vec = TfidfVectorizer(stop_words="english")
@@ -67,11 +74,14 @@ def retrieve(query, k=3):
         _build()
     chunks = _state["chunks"]
     if _state["mode"] == "faiss":
-        q, _ = _embed([query])
-        if q is not None:
-            _state["faiss"].normalize_L2(q)
-            _, ids = _state["index"].search(q, min(k, len(chunks)))
-            return "\n\n".join(chunks[i] for i in ids[0] if i >= 0)
+        try:
+            q, _ = _embed([query])
+            if q is not None:
+                _state["faiss"].normalize_L2(q)
+                _, ids = _state["index"].search(q, min(k, len(chunks)))
+                return "\n\n".join(chunks[i] for i in ids[0] if i >= 0)
+        except Exception:
+            pass
     from sklearn.feature_extraction.text import TfidfVectorizer
     from sklearn.metrics.pairwise import cosine_similarity
     if "vec" not in _state:

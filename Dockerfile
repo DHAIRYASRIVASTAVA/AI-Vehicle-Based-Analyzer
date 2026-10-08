@@ -12,9 +12,6 @@ COPY --chown=user . .
 USER user
 ENV HOME=/home/user FASTEMBED_CACHE_PATH=/home/user/.cache/fastembed
 
-# Pre-train price model + pre-download local embedding model (best effort) so first request is fast
-RUN python -c "from backend import price_model; price_model.train()" \
- && (python -c "from fastembed import TextEmbedding; TextEmbedding('BAAI/bge-small-en-v1.5')" || true)
 
 EXPOSE 7860
 CMD ["sh", "-c", "uvicorn app:app --host 0.0.0.0 --port ${PORT:-7860}"]

@@ -1,12 +1,9 @@
 fastapi>=0.110
 uvicorn[standard]>=0.29
-gradio>=4.44
 pandas
 numpy
 scikit-learn
 faiss-cpu
-fastembed
-joblib
 sqlalchemy>=2.0
 psycopg2-binary
 openai>=1.30

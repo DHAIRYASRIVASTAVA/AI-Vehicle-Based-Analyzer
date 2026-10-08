@@ -5,7 +5,8 @@ import os
 import joblib
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import GradientBoostingRegressor
+import threading
+from sklearn.ensemble import HistGradientBoostingRegressor
 from .catalog import KM_PER_YEAR
 
 MODEL_PATH = os.path.join(os.path.dirname(__file__), "price_model.joblib")
@@ -40,27 +41,43 @@ def make_synthetic(n=6000, seed=42):
 
 
 def train(df=None):
-    df = make_synthetic() if df is None else df
-    m = GradientBoostingRegressor(n_estimators=250, max_depth=3, learning_rate=0.08, random_state=1)
-    m.fit(df[FEATURES], df["price"])
-    joblib.dump(m, MODEL_PATH)
-    return m
+    df = make_synthetic(3000) if df is None else df
+    m = HistGradientBoostingRegressor(max_iter=150, max_depth=4, learning_rate=0.1, random_state=1)
+    return m.fit(df[FEATURES], df["price"])
 
 
-_model = None
+_model, _ready, _started = None, threading.Event(), False
 
 
-def _get():
+def _bg():
     global _model
-    if _model is None:
-        _model = joblib.load(MODEL_PATH) if os.path.exists(MODEL_PATH) else train()
-    return _model
+    try:
+        _model = train()
+    except Exception as ex:
+        print("[price_model] training failed:", ex)
+    finally:
+        _ready.set()
+
+
+def warmup():
+    global _started
+    if not _started:
+        _started = True
+        threading.Thread(target=_bg, daemon=True).start()
+
+
+def ready():
+    return _ready.is_set() and _model is not None
 
 
 def estimate(base, kind, age, km, owners, service, accident, asking):
     x = pd.DataFrame([[np.log(base), age, km, owners, int(service == "Available"),
                        int(accident == "Yes"), KM_PER_YEAR[kind]]], columns=FEATURES)
-    mid = float(_get().predict(x)[0])
+    warmup()
+    if _ready.wait(20) and _model is not None:
+        mid = float(_model.predict(x)[0])
+    else:  # model not ready -> same depreciation formula the model learns from
+        mid = float(_value(base, age, km, owners, int(service == "Available"), int(accident == "Yes"), KM_PER_YEAR[kind]))
     low, high = mid * 0.95, mid * 1.05
     ratio = asking / high
     if asking < low * 0.8:

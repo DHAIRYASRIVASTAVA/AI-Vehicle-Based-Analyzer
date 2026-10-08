@@ -1,5 +1,6 @@
 """Vision + report generation via any OpenAI-compatible API, with offline fallbacks."""
 import base64, io, json, os, re
+T = float(os.getenv('LLM_TIMEOUT', '25'))
 from PIL import Image
 
 try:
@@ -12,7 +13,8 @@ def _client():
     key = os.getenv("LLM_API_KEY")
     if not key or OpenAI is None:
         return None
-    return OpenAI(api_key=key, base_url=os.getenv("LLM_BASE_URL", "https://api.openai.com/v1"))
+    return OpenAI(api_key=key, base_url=os.getenv("LLM_BASE_URL", "https://api.openai.com/v1"),
+                  timeout=T, max_retries=0)
 
 
 def _json(text):
@@ -43,7 +45,7 @@ def analyze_images(paths):
         {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{_b64(p)}"}} for p in paths[:5]]
     try:
         r = c.chat.completions.create(model=os.getenv("VISION_MODEL", "gpt-4o-mini"),
-                                      messages=[{"role": "user", "content": content}], max_tokens=900)
+                                      messages=[{"role": "user", "content": content}], max_tokens=900, timeout=T * 1.5)
         return _json(r.choices[0].message.content).get("observations", []), "ok"
     except Exception as e:
         return [], f"Image analysis failed: {e}"
@@ -104,7 +106,7 @@ def generate_report(d, context):
         return _fallback(d)
     try:
         r = c.chat.completions.create(
-            model=os.getenv("LLM_MODEL", "gpt-4o-mini"), max_tokens=1200,
+            model=os.getenv("LLM_MODEL", "gpt-4o-mini"), max_tokens=1200, timeout=T,
             messages=[{"role": "user", "content": REPORT_PROMPT % (json.dumps(d, default=str), context)}])
         return _json(r.choices[0].message.content)
     except Exception:
@@ -116,7 +118,7 @@ def answer(question, d, context):
     if not c:
         return "LLM_API_KEY set karo to get AI answers. Relevant guideline:\n\n" + context[:700]
     r = c.chat.completions.create(
-        model=os.getenv("LLM_MODEL", "gpt-4o-mini"), max_tokens=500,
+        model=os.getenv("LLM_MODEL", "gpt-4o-mini"), max_tokens=500, timeout=T,
         messages=[{"role": "system", "content": "Answer using the reference knowledge and the analysis. Be concise and cautious."},
                   {"role": "user", "content": f"ANALYSIS:\n{json.dumps(d, default=str)}\n\nKNOWLEDGE:\n{context}\n\nQ: {question}"}])
     return r.choices[0].message.content
