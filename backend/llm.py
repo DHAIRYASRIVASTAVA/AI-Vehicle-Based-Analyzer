@@ -52,7 +52,7 @@ def analyze_images(paths):
 
 
 REPORT_PROMPT = """You are a cautious used-vehicle advisor for an Indian buyer. Using ONLY the data below,
-write a report. Visual notes are possibilities, not diagnoses. Return ONLY JSON:
+write a report in clear English. Visual notes are possibilities, not diagnoses. Return ONLY JSON:
 {"summary":str,"concerns":[str],"positives":[str],"seller_questions":[str],"checklist":[str]}
 Give 4-6 personalised seller questions and 8 checklist items.
 
@@ -116,9 +116,9 @@ def generate_report(d, context):
 def answer(question, d, context):
     c = _client()
     if not c:
-        return "LLM_API_KEY set karo to get AI answers. Relevant guideline:\n\n" + context[:700]
+        return "Set LLM_API_KEY to get AI answers. Relevant guideline:\n\n" + context[:700]
     r = c.chat.completions.create(
         model=os.getenv("LLM_MODEL", "gpt-4o-mini"), max_tokens=500, timeout=T,
-        messages=[{"role": "system", "content": "Answer using the reference knowledge and the analysis. Be concise and cautious."},
+        messages=[{"role": "system", "content": "Answer using the reference knowledge and the analysis. Answer in English. Be concise and cautious."},
                   {"role": "user", "content": f"ANALYSIS:\n{json.dumps(d, default=str)}\n\nKNOWLEDGE:\n{context}\n\nQ: {question}"}])
     return r.choices[0].message.content

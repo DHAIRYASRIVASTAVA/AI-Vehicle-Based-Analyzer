@@ -62,7 +62,7 @@ def diag():
 @app.post("/api/analyze")
 def analyze(name: str = Form(...), kind: str = Form("car"), year: int = Form(...), km: int = Form(...),
             owners: int = Form(...), price: float = Form(...), service_history: str = Form("Unknown"),
-            accident: str = Form("Unknown"), new_price: Optional[float] = Form(None),
+            accident: str = Form("Unknown"), new_price: Optional[float] = Form(None), kmpl: Optional[float] = Form(None),
             images: list[UploadFile] = File(default=[])):
     if kind not in KINDS: raise HTTPException(400, "kind must be car/bike/scooter")
     tmp, paths = tempfile.mkdtemp(), []
@@ -71,7 +71,7 @@ def analyze(name: str = Form(...), kind: str = Form("car"), year: int = Form(...
             p = os.path.join(tmp, f"{i}.img")
             with open(p, "wb") as out: shutil.copyfileobj(f.file, out)
             paths.append(p)
-        return service.analyze(name, kind, year, km, owners, price, service_history, accident, paths, new_price)
+        return service.analyze(name, kind, year, km, owners, price, service_history, accident, paths, new_price, kmpl)
     except ValueError as ex:
         raise HTTPException(400, str(ex))
     finally:
@@ -86,7 +86,7 @@ class Ask(BaseModel):
 @app.post("/api/ask")
 def ask(a: Ask):
     r = db.get(a.id)
-    if not r: raise HTTPException(404, "Pehle vehicle analyze karo.")
+    if not r: raise HTTPException(404, "Analyze a vehicle first.")
     return {"answer": service.ask(a.question, r)}
 
 

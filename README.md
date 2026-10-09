@@ -41,3 +41,10 @@ cp .env.example .env && docker compose up --build   # http://localhost:7860
 2. `git remote add space https://huggingface.co/spaces/<user>/<space>` then `git push space main`.
 3. Space → Settings → Variables and secrets → add `LLM_API_KEY` (secret), optional `LLM_MODEL`, `VISION_MODEL`, `EMBED_MODEL`.
 4. Without `DATABASE_URL` it uses SQLite (resets on restart). For persistence, add an external Postgres (Neon/Supabase) URL as `DATABASE_URL`.
+
+## Frontend (React + Vite)
+Source: `frontend/src`. Built output is committed in `static/` so Render needs no Node.
+```bash
+cd frontend && npm install && npm run dev     # dev server (proxies /api to :8000)
+npm run build                                 # rebuilds ../static  (commit it)
+```
